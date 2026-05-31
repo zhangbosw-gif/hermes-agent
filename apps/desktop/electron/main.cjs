@@ -1617,10 +1617,29 @@ function fetchJson(url, token, options = {}) {
             reject(new Error(`${res.statusCode}: ${text || res.statusMessage}`))
             return
           }
+          if (!text) {
+            resolve(null)
+            return
+          }
+          // A 2xx response whose body is HTML means the request fell through
+          // to the SPA index.html (e.g. an unregistered /api path). JSON.parse
+          // would throw an opaque `Unexpected token '<'` here, so surface a
+          // clear diagnostic with the offending URL instead.
+          const looksHtml = /^\s*<(?:!doctype|html)/i.test(text)
+          const contentType = String(res.headers['content-type'] || '')
+          if (looksHtml || contentType.includes('text/html')) {
+            reject(
+              new Error(
+                `Expected JSON from ${url} but got HTML (status ${res.statusCode}). ` +
+                  'The endpoint is likely missing on the Hermes backend.'
+              )
+            )
+            return
+          }
           try {
-            resolve(text ? JSON.parse(text) : null)
-          } catch (error) {
-            reject(error)
+            resolve(JSON.parse(text))
+          } catch {
+            reject(new Error(`Invalid JSON from ${url} (status ${res.statusCode}): ${text.slice(0, 200)}`))
           }
         })
       }

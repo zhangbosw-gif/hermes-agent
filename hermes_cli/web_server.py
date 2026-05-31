@@ -4758,6 +4758,17 @@ def mount_spa(application: FastAPI):
     @application.get("/{full_path:path}")
     async def serve_spa(full_path: str, request: Request):
         prefix = _normalise_prefix(request.headers.get("x-forwarded-prefix"))
+        # An unmatched /api/* path is a missing/renamed endpoint, NOT a
+        # client-side route. Falling through to index.html here returns
+        # `<!doctype html>` with status 200, which makes JSON clients (the
+        # desktop app's fetchJson, dashboard fetch wrappers) blow up with an
+        # opaque `SyntaxError: Unexpected token '<'`. Return a real 404 JSON
+        # so the caller sees a clear "no such endpoint" instead.
+        if full_path == "api" or full_path.startswith("api/"):
+            return JSONResponse(
+                {"detail": f"No such API endpoint: /{full_path}"},
+                status_code=404,
+            )
         file_path = WEB_DIST / full_path
         # Prevent path traversal via url-encoded sequences (%2e%2e/)
         if (
