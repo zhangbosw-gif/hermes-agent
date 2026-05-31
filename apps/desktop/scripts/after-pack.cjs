@@ -23,7 +23,7 @@ const path = require('node:path')
 
 const { stampExeIdentity } = require('./set-exe-identity.cjs')
 
-module.exports = async function afterPack(context) {
+exports.default = async function afterPack(context) {
   if (context.electronPlatformName !== 'win32') {
     return
   }
