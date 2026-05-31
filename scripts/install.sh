@@ -757,7 +757,8 @@ attempt_install_git() {
 check_git() {
     log_info "Checking Git..."
 
-    if command -v git &> /dev/null; then
+    # On fresh macOS /usr/bin/git is a stub that exits non-zero until CLT is installed.
+    if command -v git &> /dev/null && git --version &> /dev/null; then
         GIT_VERSION=$(git --version | awk '{print $3}')
         log_success "Git $GIT_VERSION found"
         return 0
