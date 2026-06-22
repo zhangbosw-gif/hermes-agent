@@ -1012,6 +1012,18 @@ def load_gateway_config() -> GatewayConfig:
                     channel_prompts = platform_cfg["channel_prompts"]
                     if isinstance(channel_prompts, dict):
                         bridged["channel_prompts"] = {str(k): v for k, v in channel_prompts.items()}
+                    elif isinstance(channel_prompts, str) and channel_prompts.strip():
+                        try:
+                            parsed = json.loads(channel_prompts)
+                            if isinstance(parsed, dict):
+                                bridged["channel_prompts"] = {str(k): v for k, v in parsed.items()}
+                            else:
+                                logger.warning(
+                                    "channel_prompts parsed as non-dict %s, skipping",
+                                    type(parsed).__name__,
+                                )
+                        except json.JSONDecodeError:
+                            logger.warning("channel_prompts is not valid JSON, skipping")
                     else:
                         bridged["channel_prompts"] = channel_prompts
                 if "gateway_restart_notification" in platform_cfg:
